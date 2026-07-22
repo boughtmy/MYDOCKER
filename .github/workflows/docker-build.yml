@@ -1,31 +1,39 @@
-name: Build and Upload Docker Image
+name: Build Docker Image Release
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
-  build-and-upload:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Build Docker image
+      - name: Read image name
+        id: image
         run: |
-          docker build -t myapp:latest .
+          IMAGE_NAME=$(grep 'LABEL image.name=' Dockerfile | sed 's/.*="//;s/"//')
+          echo "name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
-      - name: Save Docker image
+      - name: Build image
         run: |
-          docker save myapp:latest | gzip > myapp.tar.gz
+          docker build -t ${{ steps.image.outputs.name }}:latest .
 
-      - name: Upload image via SCP
-        uses: appleboy/scp-action@v0.1.7
+      - name: Save image
+        run: |
+          docker save ${{ steps.image.outputs.name }}:latest \
+            | gzip > ${{ steps.image.outputs.name }}.tar.gz
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "myapp.tar.gz"
-          target: "/home/${{ secrets.SERVER_USER }}/docker-images/"
+          tag_name: latest
+          name: Latest Build
+          files: |
+            ${{ steps.image.outputs.name }}.tar.gz
