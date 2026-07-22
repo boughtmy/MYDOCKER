@@ -2,6 +2,8 @@ FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+LABEL image.name="cudnn-runtime-ubuntu24.04-vnc"
+
 # Install desktop and VNC
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y  \
     xfce4 \
