@@ -1,37 +1,48 @@
-name: Build Docker Image Release
+name: Build and Publish Docker Image
 
 on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  packages: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-      - name: Read image name
+      - name: Read image name from Dockerfile
         id: image
+        shell: bash
         run: |
-          IMAGE_NAME=$(grep 'LABEL image.name=' Dockerfile | sed 's/.*="//;s/"//')
-          echo "name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+          IMAGE_NAME=$(sed -n 's/^LABEL image\.name="\([^"]*\)".*/\1/p' Dockerfile)
 
-      - name: Build image
-        run: |
-          docker build -t ${{ steps.image.outputs.name }}:latest .
+          if [ -z "$IMAGE_NAME" ]; then
+            echo "LABEL image.name not found in Dockerfile"
+            exit 1
+          fi
 
-      - name: Save image
-        run: |
-          docker save ${{ steps.image.outputs.name }}:latest \
-            | gzip > ${{ steps.image.outputs.name }}.tar.gz
+          echo "IMAGE_NAME=$IMAGE_NAME"
+          echo "name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          tag_name: latest
-          name: Latest Build
-          files: |
-            ${{ steps.image.outputs.name }}.tar.gz
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/${{ steps.image.outputs.name }}:latest \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push \
+            ghcr.io/${{ github.repository_owner }}/${{ steps.image.outputs.name }}:latest
