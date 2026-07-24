@@ -24,8 +24,8 @@ RUN apt-get update && apt-get install -y \
 
 # Configure VNC workspace defaults
 RUN mkdir -p /root/.vnc && \
-    echo "localhost=no " > /root/.vnc/config && \
-    echo "-AlwaysShared " >> /root/.vnc/config
+    echo "localhost=no" > /root/.vnc/config && \
+    echo "-AlwaysShared" >> /root/.vnc/config
 # Create XFCE startup script
 COPY <<-'EOF' /root/.vnc/xstartup
 #!/bin/sh
