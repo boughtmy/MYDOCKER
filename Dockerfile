@@ -1,47 +1,67 @@
+# syntax=docker/dockerfile:1
 FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-
 LABEL image.name="cudnn-runtime-ubuntu24.04-vnc"
 
-# Install desktop and VNC
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y  \
+# Install desktop, VNC server, and base tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
     xfce4 \
     xfce4-goodies \
     tigervnc-standalone-server \
     dbus-x11 \
-    xterm \
-    sudo \
     wget \
     curl \
     nano \
     vim \
     python3 \
     python3-pip \
+    python3-venv \
     git \
     locales \
-    libgl1 \
-    libglib2.0-0 \
-    && apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create user
-# RUN useradd -ms /bin/bash ubuntu && \
-#     echo "ubuntu:ubuntu" | chpasswd && \
-#     usermod -aG sudo ubuntu && \
-#     echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+# Configure VNC workspace defaults
+RUN mkdir -p /root/.vnc && \
+    echo "localhost=no " > /root/.vnc/config && \
+    echo "-AlwaysShared " >> /root/.vnc/config
+# Create XFCE startup script
+RUN COPY <<-'EOF' /root/.vnc/xstartup
+#!/bin/sh
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+exec dbus-launch --exit-with-session startxfce4
+EOF
+RUN chmod +x /root/.vnc/xstartup
 
-# USER ubuntu
-# WORKDIR /home/ubuntu
+# Create runtime startup script
+RUN COPY <<-'EOF' /start-vnc.sh
+#!/bin/bash
 
-# Configure VNC
-RUN mkdir -p ~/.vnc && \
-    echo "ubuntu" | vncpasswd -f > ~/.vnc/passwd && \
-    chmod 600 ~/.vnc/passwd
+# Clean up stale locks from prior runs
+rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
+vncserver -kill :1 >/dev/null 2>&1 || true
 
-RUN printf '#!/bin/sh\nunset SESSION_MANAGER\nunset DBUS_SESSION_BUS_ADDRESS\nexec dbus-launch --exit-with-session startxfce4\n' > ~/.vnc/xstartup && \
-    chmod +x ~/.vnc/xstartup
+
+# Start TigerVNC server on display :1
+vncserver :1 -AlwaysShared -localhost no -geometry 1920x1080
+
+# Tail VNC logs to keep container alive and route logs to docker logs
+tail -f /root/.vnc/*.log
+EOF
+RUN chmod +x /start-vnc.sh
+
+# Set hardcoded root user password
+RUN echo "root:123456" | chpasswd
+
+# Create pre-configured VNC password file using -f (filter mode)
+RUN vncpasswd -f <<< "123456" > /root/.vnc/passwd && \
+    chmod 600 /root/.vnc/passwd
+
+
+
 
 EXPOSE 5901
-CMD ["bash"]
-# CMD ["vncserver", ":1", "-geometry", "1920x1080", "-depth", "24", "-fg"]
+
+CMD ["/start-vnc.sh"]
