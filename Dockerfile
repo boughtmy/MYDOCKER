@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 LABEL image.name="cudnn-runtime-ubuntu24.04-vnc"
 
 # Install desktop, VNC server, and base tools
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y \
     xfce4 \
     xfce4-goodies \
     tigervnc-standalone-server \
@@ -56,7 +56,7 @@ RUN chmod +x /start-vnc.sh
 RUN echo "root:123456" | chpasswd
 
 # Create pre-configured VNC password file using -f (filter mode)
-RUN echo "123456" | tigervncpasswd -f > /root/.vnc/passwd && \
+RUN echo "123456" | vncpasswd -f > /root/.vnc/passwd && \
     chmod 600 /root/.vnc/passwd
 
 
