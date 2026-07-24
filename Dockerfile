@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y \
     python3-venv \
     git \
     locales \
+    firefox \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -52,7 +53,11 @@ tail -f /root/.vnc/*.log
 EOF
 RUN chmod +x /start-vnc.sh
 
-# Set hardcoded root user password
+# Replace the default archive and security mirrors with Aliyun
+RUN sed -i 's|https\?://archive.ubuntu.com|https://mirrors.aliyun.com|g' /etc/apt/sources.list.d/ubuntu.sources \
+    && sed -i 's|https\?://security.ubuntu.com|https://mirrors.aliyun.com|g' /etc/apt/sources.list.d/ubuntu.sources 
+
+    # Set hardcoded root user password
 RUN echo "root:123456" | chpasswd
 
 # Create pre-configured VNC password file using -f (filter mode)
