@@ -56,8 +56,8 @@ RUN chmod +x /start-vnc.sh
 RUN echo "root:123456" | chpasswd
 
 # Create pre-configured VNC password file using -f (filter mode)
-RUN vncpasswd -f <<< "123456" > /root/.vnc/passwd && \
-    chmod 600 /root/.vnc/passwd
+RUN echo "123456" | vncpasswd -f > /root/.vnc/passwd && \
+    chmod 600 /root/.vnc/passw
 
 
 
