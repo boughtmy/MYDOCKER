@@ -36,7 +36,7 @@ EOF
 RUN chmod +x /root/.vnc/xstartup
 
 # Create runtime startup script
-RUN COPY <<-'EOF' /start-vnc.sh
+COPY <<-'EOF' /start-vnc.sh
 #!/bin/bash
 
 # Clean up stale locks from prior runs
