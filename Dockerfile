@@ -27,7 +27,7 @@ RUN mkdir -p /root/.vnc && \
     echo "localhost=no " > /root/.vnc/config && \
     echo "-AlwaysShared " >> /root/.vnc/config
 # Create XFCE startup script
-RUN COPY <<-'EOF' /root/.vnc/xstartup
+COPY <<-'EOF' /root/.vnc/xstartup
 #!/bin/sh
 unset SESSION_MANAGER
 unset DBUS_SESSION_BUS_ADDRESS
